@@ -1,70 +1,117 @@
-# Getting Started with Create React App
+# ChainSight
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+ChainSight is a full-stack Ethereum analytics playground built with a React frontend and a Go backend. The goal is to make it easy to explore blocks, transactions, and wallet activity with a clean UI and a typed, well-structured API.
 
-## Available Scripts
+## Tech Stack
 
-In the project directory, you can run:
+- Frontend: React, React Router, TailwindCSS, Create React App
+- Backend: Go 1.22, GORM, Postgres
+- Infra: Docker, Docker Compose, Nginx
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```text
+.
+├── build/                  # Compiled frontend assets (Create React App)
+├── public/                 # Static assets for the React app
+├── src/                    # React application source
+│   ├── api/                # API clients (e.g. Ethereum JSON-RPC)
+│   ├── components/         # Reusable UI components
+│   ├── pages/              # Top-level pages (routes)
+│   ├── services/           # Frontend-domain service layer
+│   └── ...                 # App entry, styles, tests
+├── server/                 # Go backend API
+│   ├── cmd/chainsight-api/ # API entrypoint (main.go)
+│   └── internal/           # Config, HTTP API, indexer, storage
+└── docs/                   # High-level documentation (architecture, etc.)
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+See [docs/architecture.md](docs/architecture.md) for a deeper dive into how the pieces fit together.
 
-### `npm test`
+## Running the Project
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Option A: Run everything with Docker (recommended)
 
-### `npm run build`
+From the project root:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Build and start all services:
+	- `docker compose up --build -d` 
+2. Open the app in your browser:
+	- Frontend: `http://localhost:3000`
+	- Backend API (if you want to inspect it directly): `http://localhost:8080`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+What this does:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- Starts Postgres in a `db` container.
+- Starts the Go API in a `backend` container (port 8080).
+- Builds the React app and serves it via nginx in a `frontend` container (port 3000).
 
-### `npm run eject`
+## Indexer Runtime Behavior (New)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The backend indexer now runs continuously at fixed intervals (instead of a one-time startup run).
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+You can tune it with environment variables:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- `INDEXER_ENABLED` (default: `true`)
+- `INDEXER_INITIAL_LOOKBACK` (default: `20`)
+- `INDEXER_MAX_BLOCKS_PER_TICK` (default: `2`, recommended `1` for strict rate limits)
+- `INDEXER_INTERVAL_SECONDS` (default: `8`)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Recommended conservative profile (rate-limit friendly):
 
-## Learn More
+- `INDEXER_MAX_BLOCKS_PER_TICK=1`
+- `INDEXER_INTERVAL_SECONDS=8`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+In Docker Compose, these values are already set for the backend service.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Option B: Run services locally without Docker
 
-### Code Splitting
+#### 1. Start the Go backend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+From [server](server):
 
-### Analyzing the Bundle Size
+1. Copy env vars and configure them for your environment:
+	- `cp .env.example .env`
+2. Start Postgres (Docker):
+	- `docker compose -f docker-compose.postgres.yml up -d`
+3. Run the API server:
+	- `go run ./cmd/chainsight-api`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The API will be available at `http://localhost:8080`.
 
-### Making a Progressive Web App
+#### 2. Start the React frontend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+From the project root:
 
-### Advanced Configuration
+1. Install dependencies:
+	- `npm install`
+2. Start the dev server:
+	- `npm start`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+The frontend runs on `http://localhost:3000` and is configured (via `src/.env`) to talk to the Go API at `http://localhost:8080`.
 
-### Deployment
+## Frontend Overview
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+- Routing is handled by React Router.
+- Pages live under [src/pages](src/pages) (e.g. `BlockPage`, `WalletTest`).
+- Reusable display components live under [src/components](src/components) (e.g. `BlockInfo`, `TransactionInfo`).
+- Domain logic for talking to the backend and Ethereum lives under [src/services](src/services) and [src/api](src/api).
 
-### `npm run build` fails to minify
+To run tests:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `npm test`
+
+To build production assets:
+
+- `npm run build`
+
+## Backend Overview
+
+Backend documentation, endpoints, and examples are in [server/README.md](server/README.md).
+
+At a glance:
+
+- `internal/httpapi` – HTTP router and handlers
+- `internal/indexer` – blockchain indexing and aggregation logic
+- `internal/store` – models and repositories using GORM and Postgres
+
