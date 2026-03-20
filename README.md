@@ -27,6 +27,7 @@ ChainSight is a full-stack Ethereum analytics playground built with a React fron
 ```
 
 See [docs/architecture.md](docs/architecture.md) for a deeper dive into how the pieces fit together.
+See [docs/Screenshots.md](docs/architecture.md) for page views
 
 ## Running the Project
 
