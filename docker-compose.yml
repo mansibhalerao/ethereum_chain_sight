@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16
+    container_name: chainsight-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chainsight
+      POSTGRES_PASSWORD: chainsight
+      POSTGRES_DB: chainsight
+    ports:
+      - "5432:5432"
+    volumes:
+      - chainsight_pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: chainsight-backend
+    restart: unless-stopped
+    environment:
+      # Go config (see server/internal/config)
+      PORT: "8080"
+      APP_ENV: "production"
+      ETH_RPC_URL: "https://eth.llamarpc.com"
+      POSTGRES_DSN: "postgres://chainsight:chainsight@db:5432/chainsight?sslmode=disable"
+      DB_AUTO_MIGRATE: "true"
+      INDEXER_ENABLED: "true"
+      INDEXER_INITIAL_LOOKBACK: "20"
+      INDEXER_MAX_BLOCKS_PER_TICK: "1"
+      INDEXER_INTERVAL_SECONDS: "8"
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: chainsight-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  chainsight_pgdata:
