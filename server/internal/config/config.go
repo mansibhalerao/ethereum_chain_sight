@@ -3,6 +3,8 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/joho/godotenv"
@@ -12,6 +14,7 @@ type Config struct {
 	Port                    string
 	EthRPCURL               string
 	Env                     string
+	DBEnabled               bool
 	PostgresDSN             string
 	AutoMigrate             bool
 	IndexerEnabled          bool
@@ -26,9 +29,13 @@ func Load() Config {
 	port := getEnv("PORT", "8080")
 	rpcURL := getEnv("ETH_RPC_URL", "https://eth.llamarpc.com")
 	env := getEnv("APP_ENV", "development")
+	DBEnabled := getEnvBool("DB_ENABLED", false)
 	postgresDSN := getEnv("POSTGRES_DSN", "")
-	autoMigrate := getEnv("DB_AUTO_MIGRATE", "true") == "true"
-	indexerEnabled := getEnv("INDEXER_ENABLED", "true") == "true"
+	autoMigrate := getEnvBool("DB_AUTO_MIGRATE", true)
+
+	// easy to toggle Indexer (case-insensitive)
+	indexerEnabled := getEnvBool("INDEXER_ENABLED", false)
+
 	indexerInitialLookback := getEnvInt("INDEXER_INITIAL_LOOKBACK", 20)
 	indexerMaxBlocksPerTick := getEnvInt("INDEXER_MAX_BLOCKS_PER_TICK", 2)
 	indexerIntervalSeconds := getEnvInt("INDEXER_INTERVAL_SECONDS", 8)
@@ -37,6 +44,7 @@ func Load() Config {
 		Port:                    port,
 		EthRPCURL:               rpcURL,
 		Env:                     env,
+		DBEnabled:               DBEnabled,
 		PostgresDSN:             postgresDSN,
 		AutoMigrate:             autoMigrate,
 		IndexerEnabled:          indexerEnabled,
@@ -96,4 +104,16 @@ func getEnvInt(key string, fallback int) int {
 	}
 
 	return value
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	raw := strings.TrimSpace(getEnv(key, ""))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.ParseBool(raw)
+	if err != nil {
+		return fallback
+	}
+	return v
 }

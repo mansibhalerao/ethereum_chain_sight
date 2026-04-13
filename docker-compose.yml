@@ -3,6 +3,7 @@ services:
     image: postgres:16
     container_name: chainsight-postgres
     restart: unless-stopped
+    profiles: ["full"]
     environment:
       POSTGRES_USER: chainsight
       POSTGRES_PASSWORD: chainsight
@@ -23,14 +24,15 @@ services:
       PORT: "8080"
       APP_ENV: "production"
       ETH_RPC_URL: "https://eth.llamarpc.com"
+
+      DB_ENABLED: ${DB_ENABLED:-false}
       POSTGRES_DSN: "postgres://chainsight:chainsight@db:5432/chainsight?sslmode=disable"
-      DB_AUTO_MIGRATE: "true"
-      INDEXER_ENABLED: "true"
-      INDEXER_INITIAL_LOOKBACK: "20"
-      INDEXER_MAX_BLOCKS_PER_TICK: "1"
-      INDEXER_INTERVAL_SECONDS: "8"
-    depends_on:
-      - db
+      DB_AUTO_MIGRATE: ${DB_AUTO_MIGRATE:-false}
+
+      INDEXER_ENABLED: ${INDEXER_ENABLED:-false}
+      INDEXER_INITIAL_LOOKBACK: ${INDEXER_INITIAL_LOOKBACK:-20}
+      INDEXER_MAX_BLOCKS_PER_TICK: ${INDEXER_MAX_BLOCKS_PER_TICK:-1}
+      INDEXER_INTERVAL_SECONDS: ${INDEXER_INTERVAL_SECONDS:-8}
     ports:
       - "8080:8080"
 

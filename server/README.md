@@ -22,7 +22,7 @@ This backend proxies Ethereum JSON-RPC through your own API (using a hosted RPC 
 
 1. From this folder:
    - `cd /Users/.../chainsight/server`
-2. Copy env.example to locasl env file, then edit .env for your env:
+2. Copy env.example to local env file, then edit .env for your env:
    - `cp .env.example .env`
 3. build:
    `go build ./...`
@@ -33,11 +33,7 @@ Default server: `http://localhost:8080`
 
 ## Database (Postgres)
 
-Start Postgres:
-
-- `docker compose -f docker-compose.postgres.yml up -d`
-
-Then use `POSTGRES_DSN` from `.env.example` to connect with db.
+use `POSTGRES_DSN` from `.env.example` to connect with db.
 
 ## Indexer behavior and throttling
 
@@ -54,3 +50,5 @@ Conservative rate-limit-safe profile:
 
 - `INDEXER_MAX_BLOCKS_PER_TICK=1`
 - `INDEXER_INTERVAL_SECONDS=8`
+
+

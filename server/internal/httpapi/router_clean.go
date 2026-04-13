@@ -15,18 +15,34 @@ import (
 type Server struct {
 	ethClient *eth.Client
 	repo      *store.Repository
+	dbEnabled bool
 }
 
-func NewServer(c *eth.Client, repo *store.Repository) *Server {
-	return &Server{ethClient: c, repo: repo}
+func NewServer(c *eth.Client, repo *store.Repository, dbEnabled bool) *Server {
+	return &Server{ethClient: c, repo: repo, dbEnabled: dbEnabled}
+}
+
+// returns 503 when analytics is disabled
+func (s *Server) requireAnalytics(w http.ResponseWriter) bool {
+	if !s.dbEnabled || s.repo == nil {
+		writeError(w, http.StatusServiceUnavailable,
+			"analytics disabled: set DB_ENABLED=true (and INDEXER_ENABLED=true for fresh analytics data)", nil)
+		return false
+	}
+	return true
 }
 
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+
+	// live RPC endpoints (always enabled)
 	mux.HandleFunc("GET /api/blocks/latest", s.handleLatest)
 	mux.HandleFunc("GET /api/blocks/", s.handleBlocks)
 	mux.HandleFunc("GET /api/wallets/", s.handleWallets)
+
+	// analytics endpoints (feature-flagged, require DB)
 	mux.HandleFunc("GET /api/addresses/", s.handleAddresses)
 	mux.HandleFunc("GET /api/leaderboards/top-senders", s.handleTopSenders)
 	mux.HandleFunc("GET /api/leaderboards/top-receivers", s.handleTopReceivers)
@@ -139,6 +155,9 @@ func (s *Server) handleWallets(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAddresses(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAnalytics(w) {
+		return
+	}
 	if s.repo == nil {
 		writeError(w, http.StatusServiceUnavailable, "database is not configured", nil)
 		return
@@ -171,6 +190,9 @@ func (s *Server) handleAddresses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTopSenders(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAnalytics(w) {
+		return
+	}
 	if s.repo == nil {
 		writeError(w, http.StatusServiceUnavailable, "database is not configured", nil)
 		return
@@ -190,6 +212,9 @@ func (s *Server) handleTopSenders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTopReceivers(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAnalytics(w) {
+		return
+	}
 	if s.repo == nil {
 		writeError(w, http.StatusServiceUnavailable, "database is not configured", nil)
 		return
@@ -209,6 +234,9 @@ func (s *Server) handleTopReceivers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMostActive(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAnalytics(w) {
+		return
+	}
 	if s.repo == nil {
 		writeError(w, http.StatusServiceUnavailable, "database is not configured", nil)
 		return
@@ -235,6 +263,9 @@ func (s *Server) handleMostActive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAnalytics(w) {
+		return
+	}
 	if s.repo == nil {
 		writeError(w, http.StatusServiceUnavailable, "database is not configured", nil)
 		return
